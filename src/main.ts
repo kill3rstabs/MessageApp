@@ -6,9 +6,11 @@ import * as passport from 'passport';
 import * as path from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
+import * as cors from 'cors';
 import { SwaggerModule,DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.use(cors()); // Enable CORS
   const config = new DocumentBuilder()
     .setTitle('Messages example')
     .setDescription('The Message API description')

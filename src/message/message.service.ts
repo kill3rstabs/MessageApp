@@ -16,8 +16,9 @@ export class MessageService {
     console.log("Message Service");
     // If an image buffer is provided, save it to a local directory
     let imageFileName;
-
-    if (image) {
+    console.log(image)
+    const img = {}
+    if (image!=img) {
       imageFileName = `${uuidv4()}.jpg`; // Generate a unique file name
       console.log("message serbive")
       await this.saveImage(image, imageFileName);

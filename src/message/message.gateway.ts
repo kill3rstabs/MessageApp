@@ -31,6 +31,7 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @SubscribeMessage('sendMessage')
   handleSendMessage(client: Socket, message: { room: string, content: string }) {
     const { room, content } = message;
+    
     this.server.to(room).emit('message', { senderId: client.id, content });
   }
 

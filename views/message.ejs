@@ -1,61 +1,88 @@
 <!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Socket Chat App</title>
 </head>
+
 <body>
   <input id="roomInput" type="text" placeholder="Room">
-  
+
   <button id="joinButton">Join Room</button>
   <button id="leaveButton">Leave Room</button>
 
-  <form action="/messages" method="POST">
+  <form id="messageSend" enctype="multipart/form-data">
     <input type="text" name="senderId" placeholder="Sender ID">
     <input type="text" name="receiverId" placeholder="Receiver ID">
     <input type="text" name="content" placeholder="Message content">
-    <input id="image" type="file" name="image" accept="image/*">
-    <button type="submit">Send Message</button>
+    <input id="image" type="file" accept="image/*" name="image" />
+    <button type="submit" id="sendButton">Send Message</button>
   </form>
-  
+
   <ul id="messages"></ul>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
     const socket = io();
 
-    const roomInput = document.getElementById('roomInput');
-    const messageInput = document.getElementById('messageInput');
-    const joinButton = document.getElementById('joinButton');
-    const leaveButton = document.getElementById('leaveButton');
-    const sendButton = document.getElementById('sendButton');
-    const messages = document.getElementById('messages');
+    $(document).ready(function () {
+      const roomInput = $('#roomInput');
+      const messageInput = $('input[name="content"]');
+      const joinButton = $('#joinButton');
+      const leaveButton = $('#leaveButton');
+      const sendButton = $('#sendButton');
+      const messages = $('#messages');
 
-    joinButton.addEventListener('click', () => {
-      const room = roomInput.value;
-      socket.emit('joinRoom', room);
-    });
+      joinButton.on('click', () => {
+        const room = roomInput.val();
+        socket.emit('joinRoom', room);
+      });
 
-    leaveButton.addEventListener('click', () => {
-      const room = roomInput.value;
-      socket.emit('leaveRoom', room);
-    });
+      leaveButton.on('click', () => {
+        const room = roomInput.val();
+        socket.emit('leaveRoom', room);
+      });
 
-    sendButton.addEventListener('click', () => {
-      const room = roomInput.value;
-      const content = messageInput.value;
-      socket.emit('sendMessage', { room, content });
-    });
+      sendButton.on('click', () => {
+        const room = roomInput.val();
+        const content = String(messageInput.val()); // Convert to string
+        socket.emit('sendMessage', { room, content });
+      });
 
-    socket.on('message', (data) => {
-      const { senderId, content } = data;
-      const messageItem = document.createElement('li');
-      messageItem.textContent = `<%= name %>: ${content}`;
-      const parts = messageItem.textContent.split('\n');
-      
-      messages.appendChild(messageItem);
+      socket.on('message', (data) => {
+        const { senderId, content } = data;
+        const messageItem = $('<li>').text(`${senderId}: ${content}`);
+        messages.append(messageItem);
+      });
+
+      $('#messageSend').on('submit', function (e) {
+        e.preventDefault();
+        // Get form
+        var form = $(this)[0];
+
+        // FormData object 
+        var formData  = new FormData(form);// Collect form data
+        console.log('FormData:', formData);
+
+        $.ajax({
+          url: '/messages',
+          type: 'POST',
+          data: JSON.stringify(Object.fromEntries(formData.entries())), // Convert formData to an object
+          contentType: 'application/json',
+          processData: false, // Set processData to false as we're sending JSON
+          success: function (data) {
+            console.log(data);
+          },
+          error: function (error) {
+            console.error('Error:', error);
+          }
+        });
+      });
     });
   </script>
 </body>
+
 </html>
