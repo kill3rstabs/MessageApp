@@ -1,0 +1,61 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket Chat App</title>
+</head>
+<body>
+  <input id="roomInput" type="text" placeholder="Room">
+  
+  <button id="joinButton">Join Room</button>
+  <button id="leaveButton">Leave Room</button>
+
+  <form action="/messages" method="POST">
+    <input type="text" name="senderId" placeholder="Sender ID">
+    <input type="text" name="receiverId" placeholder="Receiver ID">
+    <input type="text" name="content" placeholder="Message content">
+    <input id="image" type="file" name="image" accept="image/*">
+    <button type="submit">Send Message</button>
+  </form>
+  
+  <ul id="messages"></ul>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const roomInput = document.getElementById('roomInput');
+    const messageInput = document.getElementById('messageInput');
+    const joinButton = document.getElementById('joinButton');
+    const leaveButton = document.getElementById('leaveButton');
+    const sendButton = document.getElementById('sendButton');
+    const messages = document.getElementById('messages');
+
+    joinButton.addEventListener('click', () => {
+      const room = roomInput.value;
+      socket.emit('joinRoom', room);
+    });
+
+    leaveButton.addEventListener('click', () => {
+      const room = roomInput.value;
+      socket.emit('leaveRoom', room);
+    });
+
+    sendButton.addEventListener('click', () => {
+      const room = roomInput.value;
+      const content = messageInput.value;
+      socket.emit('sendMessage', { room, content });
+    });
+
+    socket.on('message', (data) => {
+      const { senderId, content } = data;
+      const messageItem = document.createElement('li');
+      messageItem.textContent = `<%= name %>: ${content}`;
+      const parts = messageItem.textContent.split('\n');
+      
+      messages.appendChild(messageItem);
+    });
+  </script>
+</body>
+</html>
