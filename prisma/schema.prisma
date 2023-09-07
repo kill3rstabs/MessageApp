@@ -15,7 +15,6 @@ model User {
   email  String   @unique
   name String 
   password String @db.VarChar(60) @default("hello")
-  roomId  String?
   messagesSent Message[] @relation("sender")
   messagesReceived Message[] @relation("receiver")
   createdAt DateTime @default(now())
@@ -29,9 +28,11 @@ model Message {
   file     String?
   sender    User     @relation("sender", fields: [senderId], references: [id])
   senderId  BigInt
+  roomId  BigInt?
   receiver  User     @relation("receiver", fields: [receiverId], references: [id])
   receiverId BigInt
   createdAt DateTime @default(now())
   deletedAt DateTime?
+  updatedAt DateTime? @updatedAt
 
 }

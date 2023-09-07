@@ -9,70 +9,111 @@
 </head>
 
 <body>
-  <input id="roomInput" type="text" placeholder="Room">
-
-  <button id="joinButton">Join Room</button>
-  <button id="leaveButton">Leave Room</button>
-
-  <form id="messageSend" enctype="multipart/form-data">
-    <input type="text" name="senderId" placeholder="Sender ID">
-    <input type="text" name="receiverId" placeholder="Receiver ID">
-    <input type="text" name="content" placeholder="Message content">
-    <input id="image" type="file" accept="image/*" name="image" />
-    <button type="submit" id="sendButton">Send Message</button>
-  </form>
-
-  <ul id="messages"></ul>
+  <div class="chat-container">
+    <div class="room-list">
+      <ul>
+        <!-- Room list will be displayed here -->
+      </ul>
+    </div>
+    <div class="chat">
+      <div class="messages">
+        <ul>
+          <% messages.forEach(message=> { %>
+            <li>
+              <%= message.createdAt %>: <%= message.content %>
+            </li>
+            <!-- <li><%= message.createdAt %>: <%= message.file %></li> -->
+            <% if (message.file) { %>
+              <li><img src="/uploads/thumbnail/<%= message.file %>" alt="image" width="200" height="150" /></li>
+              <br>
+              <% } %>
+                <% }); %>
+        </ul>
+        <ul id="message-list">
+          <!-- Messages will be displayed here -->
+        </ul>
+      </div>
+      <div class="input-container">
+        <form id="messageSend" enctype="multipart/form-data">
+          <input type="text" name="senderId" placeholder="Sender ID">
+          <input type="text" name="receiverId" placeholder="Receiver ID">
+          <input id="message-input" type="text" name="content" placeholder="Type your message...">
+          <input id="image-input" type="file" name="image" accept="image/*">
+          <button id="send-button" type="button">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
-    const socket = io();
+    // Function to resize and display the image preview
+  function resizeAndDisplayImage(file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.src = event.target.result;
 
+      // Resize the image to the desired dimensions
+      const maxWidth = 200;
+      const maxHeight = 150;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height *= maxWidth / width;
+        width = maxWidth;
+      }
+
+      if (height > maxHeight) {
+        width *= maxHeight / height;
+        height = maxHeight;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Display the resized image
+      const preview = document.getElementById('image-preview');
+      preview.innerHTML = ''; // Clear previous content
+      preview.appendChild(canvas);
+    };
+
+    reader.readAsDataURL(file);
+  }
     $(document).ready(function () {
-      const roomInput = $('#roomInput');
-      const messageInput = $('input[name="content"]');
-      const joinButton = $('#joinButton');
-      const leaveButton = $('#leaveButton');
-      const sendButton = $('#sendButton');
-      const messages = $('#messages');
+      const socket = io();
 
-      joinButton.on('click', () => {
-        const room = roomInput.val();
-        socket.emit('joinRoom', room);
-      });
+      // Join a room
+      const room = prompt('Enter a room name:');
+      socket.emit('joinRoom', room);
 
-      leaveButton.on('click', () => {
-        const room = roomInput.val();
-        socket.emit('leaveRoom', room);
-      });
+      // Send a message
+      $('#send-button').on('click', function (e) {
+        e.preventDefault(); // Prevent the default form submission
 
-      sendButton.on('click', () => {
-        const room = roomInput.val();
-        const content = String(messageInput.val()); // Convert to string
-        socket.emit('sendMessage', { room, content });
-      });
+        const message = $('#message-input').val();
+        console.log(message)
+        socket.emit('sendMessage', { room, message });
+        
+        // Get the form containing the input elements
+        var form = $('#messageSend')[0]; // Use the form's ID
 
-      socket.on('message', (data) => {
-        const { senderId, content } = data;
-        const messageItem = $('<li>').text(`${senderId}: ${content}`);
-        messages.append(messageItem);
-      });
-
-      $('#messageSend').on('submit', function (e) {
-        e.preventDefault();
-        // Get form
-        var form = $(this)[0];
-
-        // FormData object 
-        var formData  = new FormData(form);// Collect form data
-        console.log('FormData:', formData);
+        // FormData object
+        var formData = new FormData(form);
+       
+        
 
         $.ajax({
           url: '/messages',
           type: 'POST',
-          data: JSON.stringify(Object.fromEntries(formData.entries())), // Convert formData to an object
-          contentType: 'application/json',
-          processData: false, // Set processData to false as we're sending JSON
+          data: formData, // Send the FormData object directly
+          contentType: false, // Set contentType to false for FormData
+          processData: false, // Set processData to false as we're sending FormData
           success: function (data) {
             console.log(data);
           },
@@ -80,6 +121,32 @@
             console.error('Error:', error);
           }
         });
+      });
+
+      // Send an image
+      $('#image-input').on('change', function (e) {
+      const imageFile = e.target.files[0];
+      resizeAndDisplayImage(imageFile);
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const imageSrc = reader.result;
+        socket.emit('sendImage', { room, image: imageSrc });
+      };
+
+      if (imageFile) {
+        reader.readAsDataURL(imageFile);
+      }
+    });
+
+      // Receive messages
+      socket.on('message', function (message) {
+        $('#message-list').append($('<li>').text(message));
+      });
+
+      // Receive images
+      socket.on('image', function (imageSrc) {
+        $('#message-list').append($('<li>').append($('<img>').attr('src', imageSrc)));
       });
     });
   </script>

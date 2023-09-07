@@ -7,9 +7,11 @@ import * as path from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import * as cors from 'cors';
+import { MessageGateway } from './message/message.gateway';
 import { SwaggerModule,DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // app.useWebSocketAdapter(new WsAdapter(app));
   app.use(cors()); // Enable CORS
   const config = new DocumentBuilder()
     .setTitle('Messages example')
@@ -24,6 +26,7 @@ async function bootstrap() {
     {whitelist: true,forbidNonWhitelisted:true}
   ));
   app.setBaseViewsDir(path.join(__dirname, '..', 'views'));
+  app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
   app.setViewEngine('ejs');
   app.use(session({
     secret: 'my-secret',

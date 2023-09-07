@@ -1,43 +1,27 @@
-import { WebSocketGateway, SubscribeMessage, OnGatewayConnection, OnGatewayDisconnect, WebSocketServer } from '@nestjs/websockets';
+// message.gateway.ts
+import { WebSocketGateway, SubscribeMessage, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway()
-export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class MessageGateway {
   @WebSocketServer()
   server: Server;
-
-  users: Map<string, Socket> = new Map();
-
-  handleConnection(client: Socket) {
-    this.users.set(client.id, client);
-    console.log(`Client connected: ${client.id}`);
-  }
-
-  handleDisconnect(client: Socket) {
-    this.users.delete(client.id);
-    console.log(`Client disconnected: ${client.id}`);
-  }
 
   @SubscribeMessage('joinRoom')
   handleJoinRoom(client: Socket, room: string) {
     client.join(room);
-  }
-
-  @SubscribeMessage('leaveRoom')
-  handleLeaveRoom(client: Socket, room: string) {
-    client.leave(room);
+    this.server.to(room).emit('message', 'A new user has joined the room.');
   }
 
   @SubscribeMessage('sendMessage')
-  handleSendMessage(client: Socket, message: { room: string, content: string }) {
-    const { room, content } = message;
-    
-    this.server.to(room).emit('message', { senderId: client.id, content });
+  handleSendMessage(client: Socket, data: { room: string, message: string }) {
+    const { room, message } = data;
+    this.server.to(room).emit('message', `${client.id}: ${message}`);
   }
 
   @SubscribeMessage('sendImage')
-  handleSendImage(client: Socket, message: { room: string, content: string }) {
-    const { room, content } = message;
-    this.server.to(room).emit('image', { senderId: client.id, content });
+  handleSendImage(client: Socket, data: { room: string, image: string }) {
+    const { room, image } = data;
+    this.server.to(room).emit('image', image);
   }
 }
